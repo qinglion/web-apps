@@ -20,10 +20,12 @@ apps/**/main/resources/**/iconsbig*.svg
 apps/**/main/resources/**/iconsbig*.less
 apps/**/main/resources/**/iconshuge*.png
 apps/**/main/resources/**/iconshuge*.less
+apps/**/main/resources/**/iconshuge*.svg
+apps/**/mobile/index.html
 apps/**/mobile/dist/*.*
+apps/**/mobile/dist/**/*.*
 apps/**/mobile/hot/*.*
 apps/**/mobile/css/*.*
-
 
 # test documents
 apps/presentationeditor/embed/document
@@ -37,3 +39,6 @@ apps/spreadsheeteditor/mobile/offlinedocs
 selenium-debug.log
 **/test/bin
 **/test/reports
+
+*.gz
+*.LICENSE.txt
