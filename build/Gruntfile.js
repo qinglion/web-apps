@@ -836,6 +836,11 @@ module.exports = function(grunt) {
                                                             'requirejs', 'babel', 'terser', 'concat', 'copy', 'svgmin', 'inline', 'json-minify',
                                                             'replace:writeVersion', 'replace:prepareHelp', 'clean:postbuild']);
 
+    // 开发模式任务 - 跳过terser压缩以保留console.log
+    grunt.registerTask('deploy-app-main-dev',           ['prebuild-icons-sprite', 'main-app-init', 'clean:prebuild', 'imagemin', 'less',
+                                                            'requirejs', 'babel', 'concat', 'copy', 'svgmin', 'inline', 'json-minify',
+                                                            'replace:writeVersion', 'replace:prepareHelp', 'clean:postbuild']);
+
     grunt.registerTask('deploy-app-mobile',             ['mobile-app-init', 'clean:deploy', /*'cssmin',*/ /*'copy:template-backup',*/
                                                             'htmlmin', /*'requirejs',*/ 'exec:webpack_install', 'exec:webpack_app_build', /*'copy:template-restore',*/
                                                             /*'clean:template-backup',*/ 'copy:localization', 'copy:index-page',
@@ -866,11 +871,33 @@ module.exports = function(grunt) {
         }
     });
 
+    // 开发模式部署任务
+    grunt.registerTask('deploy-app-dev', 'Deploy application in development mode.', function(){
+        if (packageFile) {
+            if (packageFile['tasks']['deploy-dev'])
+                grunt.task.run(packageFile['tasks']['deploy-dev']);
+            else if (packageFile['tasks']['deploy'])
+                // 如果没有专门的开发模式任务，使用普通任务并添加-dev后缀
+                grunt.task.run(packageFile['tasks']['deploy'].map(task => task.replace('deploy-app-main', 'deploy-app-main-dev')));
+            else
+                grunt.log.error().writeln('Not found "deploy" task in configure'.red);
+        } else {
+            grunt.log.error().writeln('Is not load configure file.'.red);
+        }
+    });
+
     grunt.registerTask('deploy-common-component',             ['init-build-common', 'deploy-app']);
     grunt.registerTask('deploy-documenteditor-component',     ['init-build-documenteditor', 'deploy-app']);
     grunt.registerTask('deploy-spreadsheeteditor-component',  ['init-build-spreadsheeteditor', 'deploy-app']);
     grunt.registerTask('deploy-presentationeditor-component', ['init-build-presentationeditor', 'deploy-app']);
     grunt.registerTask('deploy-pdfeditor-component',          ['init-build-pdfeditor', 'deploy-app']);
+
+    // 开发模式组件任务
+    grunt.registerTask('deploy-common-component-dev',             ['init-build-common', 'deploy-app-dev']);
+    grunt.registerTask('deploy-documenteditor-component-dev',     ['init-build-documenteditor', 'deploy-app-dev']);
+    grunt.registerTask('deploy-spreadsheeteditor-component-dev',  ['init-build-spreadsheeteditor', 'deploy-app-dev']);
+    grunt.registerTask('deploy-presentationeditor-component-dev', ['init-build-presentationeditor', 'deploy-app-dev']);
+    grunt.registerTask('deploy-pdfeditor-component-dev',          ['init-build-pdfeditor', 'deploy-app-dev']);
     // This task is called from the Makefile, don't delete it.
     grunt.registerTask('deploy-documents-component',          ['deploy-common-component']);   
 
@@ -888,4 +915,11 @@ module.exports = function(grunt) {
                                    'deploy-spreadsheeteditor-component',
                                    'deploy-presentationeditor-component',
                                    'deploy-pdfeditor-component']);
+
+    // 开发模式默认任务
+    grunt.registerTask('dev', ['deploy-common-component-dev',
+                              'deploy-documenteditor-component-dev',
+                              'deploy-spreadsheeteditor-component-dev',
+                              'deploy-presentationeditor-component-dev',
+                              'deploy-pdfeditor-component-dev']);
 };
