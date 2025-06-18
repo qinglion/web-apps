@@ -261,6 +261,7 @@ define([
                     Common.Gateway.on('opendocument',   _.bind(this.loadDocument, this));
                     Common.Gateway.on('opendocumentfrombinary',   _.bind(this.loadBinary, this));
                     Common.Gateway.on('grabfocus',      _.bind(this.onGrabFocus, this));
+                    Common.Gateway.on('internalcommand', _.bind(this.onInternalCommand, this));
                     Common.Gateway.appReady();
 
 //                $(window.top).resize(_.bind(this.onDocumentResize, this));
@@ -2634,6 +2635,8 @@ define([
 
                 const cur_version = this.getApplication().getController('LeftMenu').leftMenu.getMenu('about').txtVersionNum;
                 const cropped_version = cur_version.match(/^(\d+.\d+.\d+)/);
+
+                console.log("onServerVersion", cur_version, cropped_version, buildVersion);
                 if (!window.compareVersions && (!cropped_version || cropped_version[1] !== buildVersion)) {
                     this.changeServerVersion = true;
                     Common.UI.warning({
@@ -3314,6 +3317,82 @@ define([
 
             onGrabFocus: function() {
                 this.getApplication().getController('DocumentHolder').getView().focus();
+            },
+
+            onInternalCommand: function(data) {
+                if (data && data.command) {
+                    switch (data.command) {
+                        case 'triggerSave':
+                            console.log('执行triggerSave');
+                            this.handleCustomSave();
+                            break;
+                        // 可以在这里添加更多自定义命令
+                        default:
+                            console.log('未知内部命令:', data.command);
+                            break;
+                    }
+                } else {
+                    console.log('无效的命令数据:', data);
+                }
+            },
+
+            handleCustomSave: function() {
+                console.log('开始handleCustomSave');
+                
+                // 方法1：通过工具栏控制器触发保存
+                var toolbarController = this.getApplication().getController('Toolbar');
+                if (toolbarController && typeof toolbarController.tryToSave === 'function') {
+                    console.log('通过工具栏控制器保存');
+                    toolbarController.tryToSave();
+                    return;
+                }
+                
+                // 方法2：如果工具栏控制器不可用，直接调用 API
+                console.log('工具栏控制器不可用，使用直接保存');
+                this.performDirectSave();
+            },
+
+            performDirectSave: function() {
+                console.log('执行直接保存');
+                
+                // 检查是否有保存权限和API可用性
+                if (!this.api) {
+                    console.error('API不可用');
+                    return;
+                }
+
+                try {
+                    // 检查文档是否可以保存
+                    var canSave = this.api.asc_isDocumentCanSave();
+                    var appOptions = this.appOptions || {};
+                    
+                    console.log('canSave:', canSave);
+                    console.log('forcesave:', appOptions.forcesave);
+                    console.log('canSaveDocumentToBinary:', appOptions.canSaveDocumentToBinary);
+                    
+                    if (canSave || appOptions.forcesave || appOptions.canSaveDocumentToBinary) {
+                        // 直接调用保存 API
+                        console.log('调用api.asc_Save()');
+                        this.api.asc_Save();
+                        
+                        console.log('保存操作已触发');
+                        
+                        // 触发相关事件和分析统计
+                        Common.NotificationCenter.trigger('edit:complete');
+                        if (Common.component && Common.component.Analytics) {
+                            Common.component.Analytics.trackEvent('Save');
+                            Common.component.Analytics.trackEvent('ToolBar', 'Save');
+                        }
+                    } else {
+                        console.log('文档不需要保存或无法保存');
+                        
+                        // 强制保存尝试
+                        console.log('尝试强制保存');
+                        this.api.asc_Save();
+                    }
+                } catch (e) {
+                    console.error('保存操作失败:', e);
+                }
             },
 
             onLanguageLoaded: function() {
